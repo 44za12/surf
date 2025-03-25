@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+  surf:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - AUTH_ENABLED=True
+      - API_KEYS=${API_KEYS:-default-api-key}
+      - SEARCH_PROVIDER=duckduckgo
+      - DUCKDUCKGO_TIMEOUT=15
+      - DUCKDUCKGO_MAX_RESULTS=10
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    volumes:
+      - ./data:/app/data 
