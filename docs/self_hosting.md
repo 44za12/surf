@@ -110,7 +110,7 @@ sudo apt install python3.12 python3.12-venv python3.12-dev
 #### Step 2: Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/surf.git
+git clone https://github.com/44za12/surf.git
 cd surf
 ```
 
@@ -328,6 +328,6 @@ For production deployments, consider setting up:
 
 If you encounter issues not covered here:
 
-1. Check the [GitHub Issues](https://github.com/yourusername/surf/issues) for similar problems
+1. Check the [GitHub Issues](https://github.com/44za12/surf/issues) for similar problems
 2. Start a new discussion in the repository
 3. Join our community chat for real-time assistance 

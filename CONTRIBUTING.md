@@ -30,7 +30,7 @@ By participating in this project, you agree to uphold our Code of Conduct, which
 1. Fork the repository.
 2. Clone your fork locally:
    ```
-   git clone https://github.com/your-username/surf.git
+   git clone https://github.com/44za12/surf.git
    cd surf
    ```
 3. Set up the development environment:

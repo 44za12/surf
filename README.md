@@ -52,7 +52,7 @@ Comprehensive documentation is available in the `docs/` directory:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/surf.git
+git clone https://github.com/44za12/surf.git
 cd surf
 
 # Create a virtual environment
@@ -126,7 +126,7 @@ Deploy with Docker Compose for the simplest setup:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/surf.git
+git clone https://github.com/44za12/surf.git
 cd surf
 
 # Start the container
