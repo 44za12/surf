@@ -1,249 +1,129 @@
-# SURF API
+# SURF
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+SURF (Search Utility & Reading Framework) is a self-deployable API that lets LLMs search the web and read pages. It cleans HTML into markdown/JSON optimised for context windows, and supports multiple search providers out of the box.
 
-SURF (Search Utility & Reading Framework) is an elegant, self-deployable API that bridges the gap between Large Language Models and the web. With minimal setup, deploy a robust solution that enables any LLM to search the web and process content in a format optimized for context windows.
+It exposes both a **REST API** and an **MCP server** so you can use it from any HTTP client or any MCP-compatible AI tool (Claude Desktop, etc.).
 
-## ✨ Key Features
+## Features
 
-- **Powerful HTML Processing**:
-  - Advanced processing with support for tables, images, and complex layouts
-  - Clean content extraction from web pages with noise removal
-  - Multi-format support (HTML, plain text, JSON, and more)
+- **HTML → Markdown** — tables, lists, links, code blocks all converted cleanly
+- **Multiple search providers** — DuckDuckGo (default, no key needed), Brave Search, or SearXNG
+- **Auth with auto-generated keys** — on first start, an API key is created and saved to `.env`
+- **MCP support** — `main.py` runs as a Model Context Protocol server with `search` and `read_url` tools
+- **REST API** — `run.py` serves familiar HTTP endpoints at `/search` and `/read/{url}`
 
-- **Intelligent Web Search**: Leverage multiple search providers:
-  - Choose between DuckDuckGo (default), SearXNG, or Brave Search for web searches
-  - Privacy-respecting searches through configurable instances
-  - High-quality results using native ranking algorithms
-  - Flexible output formats for seamless LLM integration
-  - Customizable result count and presentation format
-
-- **Designed for LLMs**:
-  - Content optimized for LLM context windows
-  - Structured data for easy comprehension by AI models
-  - Consistent formatting for reliable parsing
-  - Customizable output formats (JSON, Markdown)
-
-- **Developer-Friendly**:
-  - Simple REST API with intuitive endpoints
-  - Comprehensive documentation and integration guides
-  - Authentication-ready with secure API keys
-  - Fully self-hostable with minimal dependencies
-
-- **Model Context Protocol (MCP) Integration**:
-  - Easy implementation of MCP servers for standardized AI access
-  - Simplified interfaces for search and content reading
-  - Compatible with all MCP clients like Claude Desktop
-  - Rapid development of AI tools with web access capabilities
-
-## 📚 Documentation
-
-Comprehensive documentation is available in the `docs/` directory:
-
-- [Documentation Index](docs/README.md) - Start here for a complete overview
-- [Architecture Overview](docs/architecture.md) - Learn about the system design
-- [Integration Guide](docs/integration_guide.md) - Detailed instructions for connecting with LLMs
-- [Use Cases & Applications](docs/use_cases.md) - Explore real-world applications
-- [Self-Hosting Guide](docs/self_hosting.md) - Deploy SURF on your own infrastructure
-
-## 💻 Quick Start
-
-### Installation
+## Quick Start
 
 ```bash
-# Clone the repository
 git clone https://github.com/44za12/surf.git
 cd surf
 
-# Create a virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Set up virtualenv & install deps
+uv venv && source .venv/bin/activate
+uv pip install -r requirements.txt
 
-# Install dependencies
-pip install -r requirements.txt
+# Create .env from template
+cp .env.example .env
+# Edit .env if you want to change search provider, port, etc.
 
-# Start the server
-python run.py
+# Start the REST API
+.venv/bin/python3 run.py
 ```
 
-The API server will be available at http://localhost:8000.
+On first boot with `AUTH_ENABLED=True` (the default) and no `API_KEYS` set, an API key is **auto-generated and saved to `.env`**. It is printed to stderr so you can find it in your logs.
 
-### Basic Usage
+## Authentication
 
-#### Read a webpage
+Both `X-API-Key` header and `Authorization: Bearer` are accepted:
 
 ```bash
-curl "http://localhost:8000/read/https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FPython_%28programming_language%29"
+# Either works:
+curl -H "X-API-Key: YOUR_KEY" "http://localhost:8000/search?q=hello"
+curl -H "Authorization: Bearer YOUR_KEY" "http://localhost:8000/search?q=hello"
 ```
 
-#### Search the web
+Set `AUTH_ENABLED=False` in `.env` to disable auth entirely.
+
+## REST API
+
+### `GET /search`
+
+Search the web.
+
+| Parameter     | Default | Description                              |
+|---------------|---------|------------------------------------------|
+| `q`           | —       | Search query (required)                  |
+| `format`      | `json`  | `json` or `md`                           |
+| `max_results` | `5`     | 1–10                                     |
+| `language`    | `en-US` | Language/region code                     |
+| `time_range`  | —       | `day`, `week`, `month`, or `year`        |
 
 ```bash
-curl "http://localhost:8000/search?q=latest+AI+research+papers"
+curl -H "X-API-Key: KEY" "http://localhost:8000/search?q=latest+AI+research&max_results=3"
 ```
 
-## 📋 API Reference
+### `GET /read/{url}`
 
-### GET /read/{url}
+Fetch a page, strip boilerplate, return clean content.
 
-Fetches, cleans and processes web content.
-
-- **URL Parameters**:
-  - `url`: URL-encoded address of the content to read
-- **Query Parameters**:
-  - `format`: Output format (json or md, default: json)
-
-### GET /search
-
-Searches the web and returns relevant results.
-
-- **Query Parameters**:
-  - `q`: Search query
-  - `format`: Output format (json or md, default: json)
-  - `max_results`: Number of results (1-10, default: 5)
-  - `language`: Language code (e.g., en-US, fr-FR)
-  - `time_range`: Time filter (day, week, month, year)
-
-## 🧠 LLM Integration Strategies
-
-SURF API is designed to be easily integrated with any LLM system. Here are some recommended integration patterns:
-
-1. **Tool-based integration**: Configure SURF endpoints as tools in your LLM tool library
-2. **Retrieval Augmentation**: Use the search and read endpoints for RAG (Retrieval-Augmented Generation)
-3. **Direct Context Injection**: Insert search results or web content directly into your prompts
-4. **Multi-step workflow**: First search for relevant sources, then read specific pages based on search results
-5. **Model Context Protocol (MCP)**: Create MCP servers that leverage SURF for web access, allowing standardized integration with compatible AI systems
-
-For detailed MCP implementation examples, see our [Integration Guide](docs/integration_guide.md#integration-with-model-context-protocol-mcp).
-
-## 🚀 Deployment Options
-
-SURF can be deployed in multiple ways depending on your requirements:
-
-### 🐳 Docker (Recommended)
-
-Deploy with Docker Compose for the simplest setup:
+| Parameter | Default | Description    |
+|-----------|---------|----------------|
+| `format`  | `json`  | `json` or `md` |
 
 ```bash
-# Clone the repository
-git clone https://github.com/44za12/surf.git
-cd surf
-
-# Start the container
-docker-compose up -d
+curl -H "X-API-Key: KEY" "http://localhost:8000/read/https://example.com"
 ```
 
-For more details, see the [Self-Hosting Guide](docs/self_hosting.md).
+### `GET /`
 
-### 💻 Bare Metal
+Health check / info endpoint.
 
-Install directly on your server:
+## MCP Server
+
+`main.py` exposes the same `search` and `read_url` functionality as MCP tools. To use with Claude Desktop or another MCP client:
+
+```json
+{
+  "mcpServers": {
+    "surf": {
+      "command": "/path/to/surf/.venv/bin/python3",
+      "args": ["/path/to/surf/main.py"]
+    }
+  }
+}
+```
+
+## Configuration
+
+All settings live in `.env` (see `.env.example`):
+
+| Variable               | Default      | Description                                      |
+|------------------------|--------------|--------------------------------------------------|
+| `DEBUG`                | `False`      | Enable debug mode                                |
+| `PORT`                 | `8000`       | REST API port                                    |
+| `AUTH_ENABLED`         | `True`       | Require API key auth                             |
+| `API_KEYS`             | (auto)       | Comma-separated API keys; auto-generated if empty|
+| `SEARCH_PROVIDER`      | `duckduckgo` | `duckduckgo`, `brave`, or `searxng`              |
+| `BRAVE_API_KEY`        | —            | Required when using Brave Search                 |
+| `SEARXNG_INSTANCE_URL` | `https://searx.be` | SearXNG instance URL                      |
+| `SEARXNG_AUTH_USERNAME` | —           | SearXNG basic auth username                      |
+| `SEARXNG_AUTH_PASSWORD` | —           | SearXNG basic auth password                      |
+
+Timeout and max-result settings are also available per provider (`BRAVE_TIMEOUT`, `DUCKDUCKGO_MAX_RESULTS`, etc.).
+
+## Deploying with PM2
 
 ```bash
-# Create a virtual environment
-python -m venv venv
-source venv/bin/activate
+cd /path/to/surf
+uv venv && source .venv/bin/activate
+uv pip install -r requirements.txt
+cp .env.example .env   # then edit
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Start the server
-python run.py
+pm2 start run.py --name surf-api --cwd /path/to/surf --interpreter /path/to/surf/.venv/bin/python3
+pm2 save
+pm2 logs surf-api      # find your auto-generated API key here
 ```
 
-### ☁️ Cloud Platforms
+## License
 
-SURF works well on:
-- Digital Ocean droplets
-- AWS EC2 or Lightsail instances
-- Azure VMs
-- Google Cloud VMs
-- PaaS platforms like Heroku, Railway, and Render
-
-Full deployment instructions are available in the [Self-Hosting Guide](docs/self_hosting.md).
-
-## 📐 Configuration Options
-
-All configuration is managed through environment variables or the `.env` file:
-
-### API Settings
-- `DEBUG`: Enable/disable debug mode (default: False)
-- `PORT`: Port to run the API on (default: 8000)
-
-### Security Settings
-- `AUTH_ENABLED`: Enable/disable API key authentication (default: True)
-- `API_KEYS`: Comma-separated list of valid API keys
-- `DEFAULT_API_KEY`: A default API key to use (auto-generated if not specified)
-
-### Search Provider Settings
-- `SEARCH_PROVIDER`: The search provider to use (`searxng`, `duckduckgo`, or `brave`, default: `duckduckgo`)
-
-### SearXNG Settings
-- `SEARXNG_INSTANCE_URL`: SearXNG instance URL (default: https://searx.be)
-- `SEARXNG_AUTH_USERNAME`: Username for SearXNG authentication (optional)
-- `SEARXNG_AUTH_PASSWORD`: Password for SearXNG authentication (optional)
-- `SEARXNG_TIMEOUT`: Request timeout in seconds (default: 10)
-- `SEARXNG_MAX_RESULTS`: Maximum search results to fetch (default: 10)
-
-### DuckDuckGo Settings
-- `DUCKDUCKGO_TIMEOUT`: Request timeout in seconds (default: 10)
-- `DUCKDUCKGO_MAX_RESULTS`: Maximum search results to fetch (default: 10)
-
-### Brave Search Settings
-- `BRAVE_API_KEY`: API key for Brave Search (required for Brave Search)
-- `BRAVE_TIMEOUT`: Request timeout in seconds (default: 10)
-- `BRAVE_MAX_RESULTS`: Maximum search results to fetch (default: 10)
-
-## 🚀 Advanced Usage
-
-### Testing the HTML Parser
-
-```
-python run.py --test --url https://example.com
-```
-
-This command tests the HTML parser with a specific URL and displays the processed content.
-
-### Custom SearXNG Instance
-
-For full privacy control, you can set up your own SearXNG instance and configure SURF to use it:
-
-1. Deploy SearXNG using their [official documentation](https://searxng.github.io/searxng/)
-2. Update your `.env` file with your instance URL:
-   ```
-   SEARXNG_INSTANCE_URL=https://your-searxng-instance.com
-   ```
-
-### Using Different Search Providers
-
-SURF supports multiple search providers that you can configure:
-
-#### DuckDuckGo (Default, No API key required)
-
-DuckDuckGo is the default search provider and requires no API key or special setup.
-
-#### SearXNG
-
-To use SearXNG instead of DuckDuckGo:
-
-```
-SEARCH_PROVIDER=searxng
-SEARXNG_INSTANCE_URL=https://your-searxng-instance.com
-```
-
-#### Brave Search (API key required)
-
-1. Get a Brave Search API key from [Brave Search API](https://brave.com/search/api/)
-2. Configure SURF to use Brave Search:
-   ```
-   SEARCH_PROVIDER=brave
-   BRAVE_API_KEY=your-api-key-here
-   ```
-
-## 📜 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🤝 Contributing
-
-Contributions to SURF are welcome! Please feel free to submit a Pull Request. 
+MIT
