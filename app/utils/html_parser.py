@@ -1,6 +1,6 @@
 import re
 from bs4 import BeautifulSoup
-import markdown
+import json
 from urllib.parse import urljoin
 
 
@@ -215,7 +215,7 @@ class HTMLCleaner:
         return text
     
     @classmethod
-    async def process_html(cls, html_content: str, base_url: str = '') -> dict:
+    async def process_html(cls, html_content: str, content_type: str = "text/html", base_url: str = '',) -> dict:
         """
         Process HTML content into clean format with title and content.
         
@@ -226,6 +226,8 @@ class HTMLCleaner:
         Returns:
             Dictionary with title, url and content
         """
+        if 'text/html' not in content_type:
+            return await cls.clean_nonhtml(content, content_type, base_url)
         soup = await cls.clean_html(html_content, base_url)
         title = await cls.extract_title(soup)
         content = await cls.html_to_markdown(soup)
@@ -234,4 +236,60 @@ class HTMLCleaner:
             "title": title,
             "url": base_url,
             "content": content
-        } 
+        }
+    
+    @staticmethod
+    async def clean_nonhtml(content, content_type, url) -> dict:
+        """Extract text content from non-HTML sources."""
+        # Basic processing for plain text
+        if 'text/plain' in content_type:
+            lines = content.split('\n')
+            
+            # Try to extract a title from the first non-empty line
+            title = "Text Document"
+            for line in lines:
+                if line.strip():
+                    title = line.strip()
+                    break
+            
+            # Return the content with minimal formatting
+            return {
+                "title": title,
+                "url": url,
+                "content": content
+            }
+        
+        # Basic processing for JSON
+        elif 'application/json' in content_type:
+            try:
+                # Try to parse JSON and pretty-print it
+                json_data = json.loads(content)
+                formatted_json = json.dumps(json_data, indent=2)
+                
+                # Try to find a title in common JSON fields
+                title = "JSON Document"
+                for field in ['title', 'name', 'id', 'key']:
+                    if isinstance(json_data, dict) and field in json_data:
+                        title = f"JSON: {json_data[field]}"
+                        break
+                
+                return {
+                    "title": title,
+                    "url": url,
+                    "content": f"```json\n{formatted_json}\n```"
+                }
+            except json.JSONDecodeError:
+                # If JSON parsing fails, return as plain text
+                return {
+                    "title": "Invalid JSON Document",
+                    "url": url,
+                    "content": content
+                }
+        
+        # For other formats, return a simple representation
+        else:
+            return {
+                "title": f"Document ({content_type})",
+                "url": url,
+                "content": f"Content type '{content_type}' not fully supported. Raw content:\n\n```\n{content[:5000]}\n```\n\n(Content may be truncated)"
+            }

@@ -3,14 +3,18 @@ from typing import Optional, Tuple, Union
 from urllib.parse import urlparse
 import logging
 
+try:
+    import brotli  # noqa: F401
+    _BROTLI_AVAILABLE = True
+except ImportError:
+    _BROTLI_AVAILABLE = False
+
 
 class WebFetcher:
     """Utility for fetching web content."""
     
-    # Max content size to download (10MB)
     MAX_CONTENT_SIZE = 10 * 1024 * 1024
     
-    # Content types that should be processed as text
     TEXT_CONTENT_TYPES = [
         'text/html', 
         'text/plain', 
@@ -36,21 +40,20 @@ class WebFetcher:
         Returns:
             Tuple of (content, content_type) or None if failed
         """
-        # Validate URL
         parsed_url = urlparse(url)
         if not parsed_url.scheme or not parsed_url.netloc:
             raise ValueError("Invalid URL provided")
         
-        # Set up timeout
         timeout_obj = aiohttp.ClientTimeout(total=timeout)
         
-        # Common headers to mimic a browser
+        accept_encoding = 'gzip, deflate, br' if _BROTLI_AVAILABLE else 'gzip, deflate'
+        
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'DNT': '1',  # Do Not Track
+            'Accept-Encoding': accept_encoding,
+            'DNT': '1',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1'
         }
